@@ -14,26 +14,25 @@ const clear = document.getElementById("clear")! as HTMLButtonElement;
 
 const context = canvas.getContext("2d")!;
 
-const cursor = {
-  active: false,
-  x: 0,
-  y: 0,
-};
+type Point = { x: number; y: number };
+const lines: Point[][] = [];
+let currentLine: Point[] = [];
+
+const cursor = { active: false, x: 0, y: 0 };
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
-  cursor.x = e.offsetX;
-  cursor.y = e.offsetY;
+  currentLine = [{ x: e.offsetX, y: e.offsetY }];
+  lines.push(currentLine);
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("mousemove", (e) => {
   if (cursor.active) {
-    context.beginPath();
-    context.moveTo(cursor.x, cursor.y);
-    context.lineTo(e.offsetX, e.offsetY);
-    context.stroke();
-    cursor.x = e.offsetX;
-    cursor.y = e.offsetY;
+    const point = { x: e.offsetX, y: e.offsetY };
+    currentLine.push(point);
+    //console.log("drawing:", point);
+    canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
 
@@ -41,8 +40,25 @@ canvas.addEventListener("mouseup", () => {
   cursor.active = false;
 });
 
-clear.addEventListener("click", () => {
+canvas.addEventListener("drawing-changed", () => {
   context.clearRect(0, 0, canvas.width, canvas.height);
+  for (const line of lines) {
+    if (line.length >= 2) {
+      context.beginPath();
+      context.moveTo(line[0].x, line[0].y);
+      for (let i = 1; i < line.length; i++) {
+        context.lineTo(line[i].x, line[i].y);
+      }
+      context.stroke();
+    }
+  }
+});
+
+clear.addEventListener("click", () => {
+  lines.length = 0;
+  currentLine = [];
+  canvas.dispatchEvent(new Event("drawing-changed"));
+  console.log("clear");
 });
 
 // reece was here
