@@ -22,7 +22,7 @@ type Point = { x: number; y: number };
 const lines: Point[][] = [];
 let currentLine: Point[] = [];
 
-let redoCommands: Point[][] = [];
+const redoCommands: Point[][] = [];
 
 const cursor = { active: false, x: 0, y: 0 };
 
