@@ -53,12 +53,36 @@ class Line {
   }
 }
 
+class ToolPreview {
+  private position: Point;
+  private size: number;
+
+  constructor(position: Point, size: number) {
+    this.position = position;
+    this.size = size;
+  }
+
+  draw(context: CanvasRenderingContext2D) {
+    context.beginPath();
+    context.arc(
+      this.position.x,
+      this.position.y,
+      this.size / 2,
+      0,
+      Math.PI * 2,
+    );
+    context.lineWidth = 1;
+    context.stroke();
+  }
+}
+
 const lines: Line[] = [];
 let currentLine: Line | null = null;
 const redoCommands: Line[] = [];
 
 const cursor = { active: false, x: 0, y: 0 };
 let currentSize = 1;
+let toolPreview: ToolPreview | null = null;
 
 function selectTool(thickness: number, button: HTMLElement) {
   currentSize = thickness;
@@ -84,26 +108,44 @@ canvas.addEventListener("mousedown", (e) => {
   lines.push(currentLine);
 
   redoCommands.length = 0;
+  toolPreview = null;
 
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("mousemove", (e) => {
+  const position = { x: e.offsetX, y: e.offsetY };
+
   if (cursor.active && currentLine) {
     currentLine.grow(e.offsetX, e.offsetY);
     canvas.dispatchEvent(new Event("drawing-changed"));
+  } else {
+    toolPreview = new ToolPreview(position, currentSize);
+    canvas.dispatchEvent(new Event("tool-moved"));
   }
 });
 
 canvas.addEventListener("mouseup", () => {
   cursor.active = false;
   currentLine = null;
+  toolPreview = null;
+  canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("drawing-changed", () => {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  for (const line of lines) {
-    line.execute(context);
+  for (let i = 0; i < lines.length; i++) {
+    lines[i].execute(context);
+  }
+});
+
+canvas.addEventListener("tool-moved", () => {
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  for (let i = 0; i < lines.length; i++) {
+    lines[i].execute(context);
+  }
+  if (!cursor.active && toolPreview) {
+    toolPreview.draw(context);
   }
 });
 
