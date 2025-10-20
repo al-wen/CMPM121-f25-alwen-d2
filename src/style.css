@@ -7,3 +7,9 @@
 canvas {
   border: 1px solid black;
 }
+
+.selectedTool {
+  outline: 1px solid black;
+  outline-offset: 1px;
+  font-weight: bold;
+}

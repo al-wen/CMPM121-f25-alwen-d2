@@ -6,6 +6,9 @@ document.body.innerHTML = `
   <button id="undo">undo</button>
   <button id="redo">redo</button>
   <button id="clear">clear</button>
+  <br>
+  <button id="thin">thin</button>
+  <button id="thick">thick</button>
 `;
 
 const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
@@ -16,19 +19,27 @@ const undo = document.getElementById("undo")! as HTMLButtonElement;
 const redo = document.getElementById("redo")! as HTMLButtonElement;
 const clear = document.getElementById("clear")! as HTMLButtonElement;
 
+const thin = document.getElementById("thin")!;
+const thick = document.getElementById("thick")!;
+
 const context = canvas.getContext("2d")!;
 
 type Point = { x: number; y: number };
 
 class Line {
   private points: Point[] = [];
+  private size: number;
 
-  constructor(start: Point) {
+  constructor(start: Point, size: number) {
     this.points.push(start);
+    this.size = size;
   }
 
   execute(context: CanvasRenderingContext2D) {
-    if (this.points.length < 2) return;
+    if (this.points.length < 2) {
+      return;
+    }
+    context.lineWidth = this.size;
     context.beginPath();
     context.moveTo(this.points[0].x, this.points[0].y);
     for (let i = 1; i < this.points.length; i++) {
@@ -47,11 +58,29 @@ let currentLine: Line | null = null;
 const redoCommands: Line[] = [];
 
 const cursor = { active: false, x: 0, y: 0 };
+let currentSize = 1;
+
+function selectTool(thickness: number, button: HTMLElement) {
+  currentSize = thickness;
+  thin.classList.remove("selectedTool");
+  thick.classList.remove("selectedTool");
+  button.classList.add("selectedTool");
+
+  if (thickness === 1) {
+    console.log("thin");
+  } else if (thickness === 5) {
+    console.log("thick");
+  }
+}
+
+thin.addEventListener("click", () => selectTool(1, thin));
+thick.addEventListener("click", () => selectTool(5, thick));
+selectTool(1, thin);
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
   const startPoint = { x: e.offsetX, y: e.offsetY };
-  currentLine = new Line(startPoint);
+  currentLine = new Line(startPoint, currentSize);
   lines.push(currentLine);
 
   redoCommands.length = 0;
