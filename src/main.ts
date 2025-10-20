@@ -19,44 +19,62 @@ const clear = document.getElementById("clear")! as HTMLButtonElement;
 const context = canvas.getContext("2d")!;
 
 type Point = { x: number; y: number };
-const lines: Point[][] = [];
-let currentLine: Point[] = [];
 
-const redoCommands: Point[][] = [];
+class Line {
+  private points: Point[] = [];
+
+  constructor(start: Point) {
+    this.points.push(start);
+  }
+
+  execute(context: CanvasRenderingContext2D) {
+    if (this.points.length < 2) return;
+    context.beginPath();
+    context.moveTo(this.points[0].x, this.points[0].y);
+    for (let i = 1; i < this.points.length; i++) {
+      context.lineTo(this.points[i].x, this.points[i].y);
+    }
+    context.stroke();
+  }
+
+  grow(x: number, y: number) {
+    this.points.push({ x, y });
+  }
+}
+
+const lines: Line[] = [];
+let currentLine: Line | null = null;
+const redoCommands: Line[] = [];
 
 const cursor = { active: false, x: 0, y: 0 };
 
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
-  currentLine = [{ x: e.offsetX, y: e.offsetY }];
+  const startPoint = { x: e.offsetX, y: e.offsetY };
+  currentLine = new Line(startPoint);
   lines.push(currentLine);
+
+  redoCommands.length = 0;
+
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (cursor.active) {
-    const point = { x: e.offsetX, y: e.offsetY };
-    currentLine.push(point);
-    //console.log("drawing:", point);
+  if (cursor.active && currentLine) {
+    currentLine.grow(e.offsetX, e.offsetY);
     canvas.dispatchEvent(new Event("drawing-changed"));
   }
 });
 
 canvas.addEventListener("mouseup", () => {
   cursor.active = false;
+  currentLine = null;
 });
 
 canvas.addEventListener("drawing-changed", () => {
   context.clearRect(0, 0, canvas.width, canvas.height);
   for (const line of lines) {
-    if (line.length >= 2) {
-      context.beginPath();
-      context.moveTo(line[0].x, line[0].y);
-      for (let i = 1; i < line.length; i++) {
-        context.lineTo(line[i].x, line[i].y);
-      }
-      context.stroke();
-    }
+    line.execute(context);
   }
 });
 
@@ -84,7 +102,7 @@ redo.addEventListener("click", () => {
 
 clear.addEventListener("click", () => {
   lines.length = 0;
-  currentLine = [];
+  currentLine = null;
   redoCommands.length = 0;
   canvas.dispatchEvent(new Event("drawing-changed"));
   console.log("clear");
