@@ -13,3 +13,9 @@ canvas {
   outline-offset: 1px;
   font-weight: bold;
 }
+
+.selectedSticker {
+  outline: 2px solid black;
+  outline-offset: 2px;
+  font-weight: bold;
+}

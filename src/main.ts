@@ -9,6 +9,10 @@ document.body.innerHTML = `
   <br>
   <button id="thin">thin</button>
   <button id="thick">thick</button>
+  <br><br>
+  <button id="sticker1">🤡</button>
+  <button id="sticker2">🔥</button>
+  <button id="sticker3">🌟</button>
 `;
 
 const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
@@ -76,9 +80,48 @@ class ToolPreview {
   }
 }
 
+class Sticker {
+  private position: Point;
+
+  constructor(private emoji: string, position: Point) {
+    this.position = position;
+  }
+
+  execute(context: CanvasRenderingContext2D) {
+    context.font = "24px serif";
+    context.fillText(this.emoji, this.position.x - 20, this.position.y);
+  }
+
+  drag(newPosition: Point) {
+    this.position = newPosition;
+  }
+
+  getPosition() {
+    return this.position;
+  }
+
+  getEmoji() {
+    return this.emoji;
+  }
+}
+
+class StickerPreview {
+  constructor(private emoji: string, private position: Point) {}
+
+  draw(context: CanvasRenderingContext2D) {
+    context.font = "24px serif";
+    context.fillText(this.emoji, this.position.x - 20, this.position.y);
+  }
+}
+
 const lines: Line[] = [];
 let currentLine: Line | null = null;
 const redoCommands: Line[] = [];
+
+const stickers: Sticker[] = [];
+let currentSticker: Sticker | null = null;
+let stickerPreview: StickerPreview | null = null;
+let selectedEmoji: string | null = null;
 
 const cursor = { active: false, x: 0, y: 0 };
 let currentSize = 1;
@@ -86,6 +129,7 @@ let toolPreview: ToolPreview | null = null;
 
 function selectTool(thickness: number, button: HTMLElement) {
   currentSize = thickness;
+  selectedEmoji = null;
   thin.classList.remove("selectedTool");
   thick.classList.remove("selectedTool");
   button.classList.add("selectedTool");
@@ -101,24 +145,53 @@ thin.addEventListener("click", () => selectTool(1, thin));
 thick.addEventListener("click", () => selectTool(5, thick));
 selectTool(1, thin);
 
+document.getElementById("sticker1")!.addEventListener("click", () => {
+  selectedEmoji = "🤡";
+  stickerPreview = null;
+  canvas.dispatchEvent(new Event("tool-moved"));
+});
+document.getElementById("sticker2")!.addEventListener("click", () => {
+  selectedEmoji = "🔥";
+  stickerPreview = null;
+  canvas.dispatchEvent(new Event("tool-moved"));
+});
+document.getElementById("sticker3")!.addEventListener("click", () => {
+  selectedEmoji = "🌟";
+  stickerPreview = null;
+  canvas.dispatchEvent(new Event("tool-moved"));
+});
+
 canvas.addEventListener("mousedown", (e) => {
   cursor.active = true;
   const startPoint = { x: e.offsetX, y: e.offsetY };
-  currentLine = new Line(startPoint, currentSize);
-  lines.push(currentLine);
 
-  redoCommands.length = 0;
-  toolPreview = null;
-
-  canvas.dispatchEvent(new Event("drawing-changed"));
+  if (selectedEmoji) {
+    currentSticker = new Sticker(selectedEmoji, startPoint);
+    stickers.push(currentSticker);
+    redoCommands.length = 0;
+    stickerPreview = null;
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  } else {
+    currentLine = new Line(startPoint, currentSize);
+    lines.push(currentLine);
+    redoCommands.length = 0;
+    toolPreview = null;
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  }
 });
 
 canvas.addEventListener("mousemove", (e) => {
   const position = { x: e.offsetX, y: e.offsetY };
 
   if (cursor.active && currentLine) {
-    currentLine.grow(e.offsetX, e.offsetY);
+    currentLine.grow(position.x, position.y);
     canvas.dispatchEvent(new Event("drawing-changed"));
+  } else if (cursor.active && currentSticker) {
+    currentSticker.drag(position);
+    canvas.dispatchEvent(new Event("drawing-changed"));
+  } else if (selectedEmoji) {
+    stickerPreview = new StickerPreview(selectedEmoji, position);
+    canvas.dispatchEvent(new Event("tool-moved"));
   } else {
     toolPreview = new ToolPreview(position, currentSize);
     canvas.dispatchEvent(new Event("tool-moved"));
@@ -128,7 +201,9 @@ canvas.addEventListener("mousemove", (e) => {
 canvas.addEventListener("mouseup", () => {
   cursor.active = false;
   currentLine = null;
+  currentSticker = null;
   toolPreview = null;
+  stickerPreview = null;
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
@@ -137,6 +212,9 @@ canvas.addEventListener("drawing-changed", () => {
   for (let i = 0; i < lines.length; i++) {
     lines[i].execute(context);
   }
+  for (let i = 0; i < stickers.length; i++) {
+    stickers[i].execute(context);
+  }
 });
 
 canvas.addEventListener("tool-moved", () => {
@@ -144,7 +222,12 @@ canvas.addEventListener("tool-moved", () => {
   for (let i = 0; i < lines.length; i++) {
     lines[i].execute(context);
   }
-  if (!cursor.active && toolPreview) {
+  for (let i = 0; i < stickers.length; i++) {
+    stickers[i].execute(context);
+  }
+  if (stickerPreview) {
+    stickerPreview.draw(context);
+  } else if (toolPreview) {
     toolPreview.draw(context);
   }
 });
@@ -173,10 +256,11 @@ redo.addEventListener("click", () => {
 
 clear.addEventListener("click", () => {
   lines.length = 0;
+  stickers.length = 0;
   currentLine = null;
+  currentSticker = null;
   redoCommands.length = 0;
   canvas.dispatchEvent(new Event("drawing-changed"));
-  console.log("clear");
 });
 
 // reece was here
