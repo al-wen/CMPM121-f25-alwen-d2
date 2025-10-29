@@ -1,6 +1,6 @@
 import "./style.css";
 
-const stickerEmojis: string[] = ["🤡", "🔥", "🌟"];
+const stickerEmojis: string[] = ["🤡", "🔥", "🌟", "🚡", "🥀", "🚱"];
 
 const stickerButtonsHTML = stickerEmojis
   .map((emoji, index) =>
@@ -10,10 +10,11 @@ const stickerButtonsHTML = stickerEmojis
 document.body.innerHTML = `
   <h1>D2🎨</h1>
   <canvas id="canvas"></canvas>
+  <br>
   <button id="undo">undo</button>
   <button id="redo">redo</button>
   <button id="clear">clear</button>
-  <br>
+  <br><br>
   <button id="thin">thin</button>
   <button id="thick">thick</button>
   <br><br>
@@ -147,8 +148,8 @@ function selectTool(thickness: number, button: HTMLElement) {
   }
 }
 
-thin.addEventListener("click", () => selectTool(1, thin));
-thick.addEventListener("click", () => selectTool(5, thick));
+thin.addEventListener("click", () => selectTool(2.5, thin));
+thick.addEventListener("click", () => selectTool(7.5, thick));
 
 function renderStickerButtons() {
   const buttons = document.querySelectorAll(".stickerButton");
