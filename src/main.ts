@@ -282,4 +282,37 @@ clear.addEventListener("click", () => {
   canvas.dispatchEvent(new Event("drawing-changed"));
 });
 
+// EXPORT
+
+const exportButton = document.createElement("button");
+exportButton.id = "export";
+exportButton.textContent = "export";
+document.body.appendChild(exportButton);
+
+exportButton.addEventListener("click", () => {
+  const exportCanvas = document.createElement("canvas");
+  exportCanvas.width = 1024;
+  exportCanvas.height = 1024;
+  const exportContext = exportCanvas.getContext("2d")!;
+
+  exportContext.fillStyle = "white";
+  exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+  exportContext.scale(4, 4);
+
+  for (let i = 0; i < lines.length; i++) {
+    lines[i].execute(exportContext);
+  }
+  for (let i = 0; i < stickers.length; i++) {
+    stickers[i].execute(exportContext);
+  }
+
+  const anchor = document.createElement("a");
+  anchor.href = exportCanvas.toDataURL("image/png");
+  anchor.download = "sketchpad.png";
+  anchor.click();
+
+  exportCanvas.remove();
+});
+
 // reece was here
