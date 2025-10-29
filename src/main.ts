@@ -18,8 +18,14 @@ document.body.innerHTML = `
   <button id="thin">thin</button>
   <button id="thick">thick</button>
   <br><br>
+  <label>sticker rotation: 
+    <input type="range" id="rotationSlider" min="0" max="360" value="0" step="1">
+    <span id="rotationValue">0°</span>
+  </label>
+  <br><br>
   ${stickerButtonsHTML}
   <button id="customSticker">+Custom Sticker</button>
+  <br><br>
 `;
 
 const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
@@ -32,6 +38,17 @@ const clear = document.getElementById("clear")! as HTMLButtonElement;
 
 const thin = document.getElementById("thin")!;
 const thick = document.getElementById("thick")!;
+
+const rotationSlider = document.getElementById(
+  "rotationSlider",
+)! as HTMLInputElement;
+const rotationValue = document.getElementById(
+  "rotationValue",
+)! as HTMLSpanElement;
+
+rotationSlider.addEventListener("input", () => {
+  rotationValue.textContent = `${rotationSlider.value}°`;
+});
 
 const context = canvas.getContext("2d")!;
 
@@ -89,14 +106,20 @@ class ToolPreview {
 
 class Sticker {
   private position: Point;
+  private rotation: number;
 
-  constructor(private emoji: string, position: Point) {
+  constructor(private emoji: string, position: Point, rotation: number) {
     this.position = position;
+    this.rotation = rotation;
   }
 
   execute(context: CanvasRenderingContext2D) {
+    context.save();
+    context.translate(this.position.x, this.position.y);
+    context.rotate((this.rotation * Math.PI) / 180);
     context.font = "24px serif";
-    context.fillText(this.emoji, this.position.x - 20, this.position.y);
+    context.fillText(this.emoji, -12, 8);
+    context.restore();
   }
 
   drag(newPosition: Point) {
@@ -113,11 +136,23 @@ class Sticker {
 }
 
 class StickerPreview {
-  constructor(private emoji: string, private position: Point) {}
+  private rotation: number;
+
+  constructor(
+    private emoji: string,
+    private position: Point,
+    rotation: number,
+  ) {
+    this.rotation = rotation;
+  }
 
   draw(context: CanvasRenderingContext2D) {
+    context.save();
+    context.translate(this.position.x, this.position.y);
+    context.rotate((this.rotation * Math.PI) / 180);
     context.font = "24px serif";
-    context.fillText(this.emoji, this.position.x - 20, this.position.y);
+    context.fillText(this.emoji, -12, 8);
+    context.restore();
   }
 }
 
@@ -186,7 +221,8 @@ canvas.addEventListener("mousedown", (e) => {
   const startPoint = { x: e.offsetX, y: e.offsetY };
 
   if (selectedEmoji) {
-    currentSticker = new Sticker(selectedEmoji, startPoint);
+    const rotation = parseFloat(rotationSlider.value) || 0;
+    currentSticker = new Sticker(selectedEmoji, startPoint, rotation);
     stickers.push(currentSticker);
     redoCommands.length = 0;
     stickerPreview = null;
@@ -210,7 +246,8 @@ canvas.addEventListener("mousemove", (e) => {
     currentSticker.drag(position);
     canvas.dispatchEvent(new Event("drawing-changed"));
   } else if (selectedEmoji) {
-    stickerPreview = new StickerPreview(selectedEmoji, position);
+    const rotation = parseFloat(rotationSlider.value) || 0;
+    stickerPreview = new StickerPreview(selectedEmoji, position, rotation);
     canvas.dispatchEvent(new Event("tool-moved"));
   } else {
     toolPreview = new ToolPreview(position, currentSize);
