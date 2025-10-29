@@ -1,5 +1,12 @@
 import "./style.css";
 
+const stickerEmojis: string[] = ["🤡", "🔥", "🌟"];
+
+const stickerButtonsHTML = stickerEmojis
+  .map((emoji, index) =>
+    `<button class="stickerButton" data-index="${index}">${emoji}</button>`
+  ).join("");
+
 document.body.innerHTML = `
   <h1>D2🎨</h1>
   <canvas id="canvas"></canvas>
@@ -10,9 +17,8 @@ document.body.innerHTML = `
   <button id="thin">thin</button>
   <button id="thick">thick</button>
   <br><br>
-  <button id="sticker1">🤡</button>
-  <button id="sticker2">🔥</button>
-  <button id="sticker3">🌟</button>
+  ${stickerButtonsHTML}
+  <button id="customSticker">+Custom Sticker</button>
 `;
 
 const canvas = document.getElementById("canvas")! as HTMLCanvasElement;
@@ -143,22 +149,35 @@ function selectTool(thickness: number, button: HTMLElement) {
 
 thin.addEventListener("click", () => selectTool(1, thin));
 thick.addEventListener("click", () => selectTool(5, thick));
-selectTool(1, thin);
 
-document.getElementById("sticker1")!.addEventListener("click", () => {
-  selectedEmoji = "🤡";
-  stickerPreview = null;
-  canvas.dispatchEvent(new Event("tool-moved"));
-});
-document.getElementById("sticker2")!.addEventListener("click", () => {
-  selectedEmoji = "🔥";
-  stickerPreview = null;
-  canvas.dispatchEvent(new Event("tool-moved"));
-});
-document.getElementById("sticker3")!.addEventListener("click", () => {
-  selectedEmoji = "🌟";
-  stickerPreview = null;
-  canvas.dispatchEvent(new Event("tool-moved"));
+function renderStickerButtons() {
+  const buttons = document.querySelectorAll(".stickerButton");
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const index = parseInt((button as HTMLElement).dataset.index!);
+      selectedEmoji = stickerEmojis[index];
+      stickerPreview = null;
+      canvas.dispatchEvent(new Event("tool-moved"));
+    });
+  });
+}
+renderStickerButtons();
+
+document.getElementById("customSticker")!.addEventListener("click", () => {
+  const text = prompt("Custom sticker text", "");
+  if (text) {
+    stickerEmojis.push(text.trim());
+    const newButton = document.createElement("button");
+    newButton.className = "stickerButton";
+    newButton.dataset.index = (stickerEmojis.length - 1).toString();
+    newButton.textContent = text.trim();
+    document.getElementById("customSticker")!.before(newButton);
+    newButton.addEventListener("click", () => {
+      selectedEmoji = text.trim();
+      stickerPreview = null;
+      canvas.dispatchEvent(new Event("tool-moved"));
+    });
+  }
 });
 
 canvas.addEventListener("mousedown", (e) => {
